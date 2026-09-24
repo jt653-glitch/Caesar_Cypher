@@ -91,6 +91,34 @@
     # This function should convert a string to an integer.
     #
 
+        pushl %ebp # save the caller's base pointer
+        movl %esp, %ebp # setup this function's stack frame
+        pushl %ebx # save EBX (Use as a scratch register)
+        pushl %esi #save ESI (Use as a string pointer)
+
+        movl 8(%ebp), %esi # ESI is the address of the digit string (first argument)
+        xorl %eax, %eax # EAX = 0, running total starts at zero
+        xorl %ebx, %ebx # EBX = 0, clear upper bits so we can add it to EAX
+
+    AtoILoop:
+        movb (%esi), %bl # BL is the current character of the string
+        cmpb $'0', %bl # compare character against '0'
+        jb AtoIDone # below '0' = not a digit (maybe a newline or null character), stop
+        cmpb $'9', %bl # compare character against '9'
+        ja AtoIDone # above '9' = not a digit, stop
+        subb $'0', %bl # convert ASCII digit to its value from 0-9
+        imull $10, %eax # total = total * 10 (Shift previous digits left)
+        addl $ebx, %eax # total = total + current digit
+        incl %esi # move to the next character
+        jmp AtoILoop # repeat for the next character
+
+    AtoIDone:
+        popl %esi # restore the caller's ESI
+        popl %ebx # restore the caller's EBX
+        movl %ebp, %esp # restore the old value of ESP
+        popl %ebp # restore the old value of EBP
+        ret # return with the integer in EAX
+
 
 
     CaesarCipher:
@@ -139,10 +167,11 @@
         call    PrintFunction
         addl    $8, %esp
 
-
-
         # Convert the shift value from a string to an integer.
-        # FILL IN HERE
+        pushl   $intBuffer      # argument: address of the shift value string
+        call    AtoI            # convert it and result comes back in EAX  
+        addl    $4, %esp        # remove the argument from the stack
+        movl    %eax, ShiftValue 
 
 
         # Perform the caesar cipheR
