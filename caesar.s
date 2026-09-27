@@ -123,9 +123,76 @@
 
     CaesarCipher:
 
-    #
-    # Fill in code for CaesarCipher Function here
-    #
+        #saving the callee registers 
+    pushl %ebp
+    movl %esp, %ebp
+    pushl %ebx
+    pushl %edi
+    pushl %esi
+
+    movl 12(%ebp), %eax  #saving the second parameter(the shift value) into %eax
+    #performing modulo 26
+    movl $26, %ecx  
+    xorl %edx, %edx
+    divl %ecx
+    movl %edx, %edi  #saving the result into register %edi for later use
+
+    movl 8(%ebp), %esi  #saving the first paremeter(the string) into registe %esi
+
+CipherLoop:
+    movzbl (%esi), %eax  #we save the first byte of the string in register %eax
+    #checking if we reached the end of the text input
+    cmpb $0xa, %al  #if the value is equal to 10 (newline), it means the user pressed enter so we stop
+    je CaesarDone
+    cmpb $0, %al  #if the value is equal to 0 (null terminator), it means the string is completely finished so we stop
+    je CaesarDone
+
+    cmpb $65, %al 
+    jl end_char #if the character is less than 65, then that means it is not a letter and should remain unchanged, so we jump to the end
+    cmpb $90, %al
+    jle upper #if it is between 65 and 90 inclusive then it is a upperrcase letter
+    cmpb $97, %al
+    jge lower  #if it is greater than or equal to 97, then if falls into the range of an lowercase letter or beyond
+    jmp end_char  #if it is greater than 90 but less than 97, then it is not a letter
+
+upper:
+    subl $65, %eax  #we subtract 65 so that A-Z corresponds to 0-25
+    addl %edi, %eax  #we add the computed shift value that we saved before
+    #we perform modulo again to ensure it doesn't go out of our bounds
+    movl $26, %ecx
+    xorl %edx, %edx
+    divl %ecx
+    movl %edx, %eax  #saving the remainder again
+    addl $65, %eax  #adding 65 back so that it is in the range of 65-90
+    movb %al, (%esi)  #we save our modified letter back into the string
+    jmp end_char  #we are done
+
+lower:
+    cmpb $122, %al  #checking if the lowercase letter goes beyond the character limit of z
+    jg end_char  #if it is greater than 122, then it is not a letter and should remain unchanged so we jump to the end
+    subl $97, %eax  #we subtract 97 so that a-z corresponds to 0-25
+    addl %edi, %eax  #we add the computed shift value that we saved before
+    #we perform modulo again to ensure it doesn't go out of our bounds
+    movl $26, %ecx
+    xorl %edx, %edx
+    divl %ecx
+    movl %edx, %eax  #saving the remainder again
+    addl $97, %eax  #adding 97 back so that it is in the range of 97-122
+    movb %al, (%esi)  #we save our modified letter back into the string
+
+end_char:
+    incl %esi  #incrementing our string index pointer to point to the next byte
+    jmp CipherLoop  #looping back to the start to process the next character
+
+CaesarDone:
+    #restoring the callee registers back to how they were
+    popl %esi
+    popl %edi
+    popl %ebx
+    movl %ebp, %esp
+    popl %ebp
+    ret  #returning back to the main program    
+
 
 
     _start:
@@ -175,7 +242,11 @@
 
 
         # Perform the caesar cipheR
-        # FILL IN HERE
+        pushl   ShiftValue      # saving the shift value parameter into the stack
+        pushl   $buffer         # saving the string parameter address into the stack
+        call    CaesarCipher    # we call our function to start the encryption
+        addl    $8, %esp        # we adjust the stack pointer back to clean up the parameters
+
 
 
         # Get the size of the ciphertext
